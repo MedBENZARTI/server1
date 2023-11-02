@@ -6,6 +6,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
+from enum import Enum
 
 # to get a string like this run:
 # openssl rand -hex 32
@@ -18,7 +19,7 @@ fake_users_db = {
     "johndoe": {
         "id": 5,
         "username": "johndoe",
-        "full_name": "John Doe",
+        "name": "John Doe",
         "email": "johndoe@example.com",
         "role": "admin",
         "password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
@@ -27,7 +28,7 @@ fake_users_db = {
     "simon": {
         "id": 4,
         "username": "simon",
-        "full_name": "Simon Heinken",
+        "name": "Simon Heinken",
         "email": "simon@example.com",
         "role": "user",
         "password": "$2b$12$Uw24ZOUFR0Cm5m29zv64bu1TQN9z9UbHBQAvAWnh2gVdpygEkMETa",
@@ -36,7 +37,7 @@ fake_users_db = {
     "mohamed": {
         "id": 6,
         "username": "mohamed",
-        "full_name": "mohamed benz",
+        "name": "mohamed benz",
         "email": "mohamed@example.com",
         "role": "admin",
         "password": "$2b$12$P2pFehGdRpyLW574cMBeXeVtxYdSIlK6u/n2tJQMR6XDNT3i66rUO",
@@ -44,7 +45,9 @@ fake_users_db = {
     }
 }
 
-
+class Role(str, Enum):
+    admin = "admin"
+    user = "user"
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -58,7 +61,7 @@ class User(BaseModel):
     id: int
     username: str
     email: str
-    role: str
+    role: Role
     name: Union[str, None] = None
     disabled: Union[bool, None] = None
 
@@ -159,6 +162,18 @@ async def read_users_me(
     current_user: Annotated[User, Depends(get_current_active_user)]
 ):
     return current_user
+
+@app.post("/users/new/")
+async def add_user(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    new_user: User
+):
+    if current_user.role != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="You don't have permission to do this action",
+        )
+    return new_user
 
 
 @app.get("/users/me/items/")
