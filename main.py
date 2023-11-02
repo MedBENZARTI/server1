@@ -16,9 +16,11 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 fake_users_db = {
     "johndoe": {
+        "id": 5,
         "username": "johndoe",
         "full_name": "John Doe",
         "email": "johndoe@example.com",
+        "role": "admin",
         "password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
         "disabled": False,
     }
@@ -38,7 +40,6 @@ class User(BaseModel):
     id: int
     username: str
     email: str
-    password: str
     role: str
     name: Union[str, None] = None
     disabled: Union[bool, None] = None
