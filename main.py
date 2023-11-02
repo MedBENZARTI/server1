@@ -23,6 +23,24 @@ fake_users_db = {
         "role": "admin",
         "password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
         "disabled": False,
+    },
+    "simon": {
+        "id": 4,
+        "username": "simon",
+        "full_name": "Simon Heinken",
+        "email": "simon@example.com",
+        "role": "user",
+        "password": "$2b$12$Uw24ZOUFR0Cm5m29zv64bu1TQN9z9UbHBQAvAWnh2gVdpygEkMETa",
+        "disabled": False,
+    },
+    "mohamed": {
+        "id": 6,
+        "username": "mohamed",
+        "full_name": "mohamed benz",
+        "email": "mohamed@example.com",
+        "role": "admin",
+        "password": "$2b$12$P2pFehGdRpyLW574cMBeXeVtxYdSIlK6u/n2tJQMR6XDNT3i66rUO",
+        "disabled": False,
     }
 }
 
