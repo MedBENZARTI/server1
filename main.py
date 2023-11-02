@@ -14,8 +14,7 @@ def authenticate_api_key(api_key: str = Depends(lambda x: x)):
 @app.get("/")
 def read_root():
     """
-    This is a hello world apihow to refresh uvicorn 
-      test
+    Changed the docs
     """
     return {"message": "Hello, FastAPI!"}
 
