@@ -15,9 +15,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 
 fake_users_db = {
-    "johndoe": {
-        "email": "johndoe",
-        "full_name": "John Doe",
+    "johndoe@example.com": {
+        "name": "John Doe",
         "email": "johndoe@example.com",
         "password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
         "role": 'admin',
