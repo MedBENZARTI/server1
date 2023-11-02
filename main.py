@@ -15,11 +15,11 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 
 fake_users_db = {
-    "johndoe@example.com": {
-        "name": "John Doe",
+    "johndoe": {
+        "username": "johndoe",
+        "full_name": "John Doe",
         "email": "johndoe@example.com",
         "password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
-        "role": 'admin',
         "disabled": False,
     }
 }
@@ -31,12 +31,12 @@ class Token(BaseModel):
 
 
 class TokenData(BaseModel):
-    email: Union[str, None] = None
+    username: Union[str, None] = None
 
 
 class User(BaseModel):
     id: int
-    # email: str
+    username: str
     email: str
     password: str
     role: str
@@ -63,14 +63,14 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-def get_user(db, email: str):
-    if email in db:
-        user_dict = db[email]
+def get_user(db, username: str):
+    if username in db:
+        user_dict = db[username]
         return UserInDB(**user_dict)
 
 
-def authenticate_user(fake_db, email: str, password: str):
-    user = get_user(fake_db, email)
+def authenticate_user(fake_db, username: str, password: str):
+    user = get_user(fake_db, username)
     if not user:
         return False
     if not verify_password(password, user.password):
@@ -97,13 +97,13 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
+        username: str = payload.get("sub")
+        if username is None:
             raise credentials_exception
-        token_data = TokenData(email=email)
+        token_data = TokenData(username=username)
     except JWTError:
         raise credentials_exception
-    user = get_user(fake_users_db, email=token_data.email)
+    user = get_user(fake_users_db, username=token_data.username)
     if user is None:
         raise credentials_exception
     return user
@@ -121,16 +121,16 @@ async def get_current_active_user(
 async def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ):
-    user = authenticate_user(fake_users_db, form_data.email, form_data.password)
+    user = authenticate_user(fake_users_db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
+        data={"sub": user.username}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -146,4 +146,4 @@ async def read_users_me(
 async def read_own_items(
     current_user: Annotated[User, Depends(get_current_active_user)]
 ):
-    return [{"item_id": "Foo", "owner": current_user.email}]
+    return [{"item_id": "Foo", "owner": current_user.username}]
