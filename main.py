@@ -93,10 +93,11 @@ class User(BaseModel):
     name: Union[str, None] = None
     disabled: Union[bool, None] = None
 
-
-class UserInDB(User):
-    id: int
+class UserInReq(User):
     password: str
+
+class UserInDB(UserInReq):
+    id: int
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -195,17 +196,22 @@ async def read_users_me(
 @app.post("/users/new/")
 async def add_user(
     current_user: Annotated[User, Depends(get_current_active_user)],
-    new_user: User
+    new_user: UserInReq
 ):
     if current_user.role != 'admin':
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="You don't have permission to do this action",
         )
-    obj = new_user
-    attributes = [attr for attr in dir(obj) if not callable(getattr(obj, attr)) and not attr.startswith("__")]
-    values = [getattr(obj, attr) for attr in attributes]
-    insert_query = f"INSERT INTO users ({', '.join(attributes)}) VALUES ({', '.join(['%s' for _ in values])})"
+    obj = {
+        "username": new_user.username,
+        "email": new_user.email,
+        "role": new_user.role,
+        "name": new_user.name,
+        "password": pwd_context.hash(new_user.password),
+        "disabled": new_user.disabled
+        }
+    insert_query = f"INSERT INTO users ({', '.join(obj.keys())}) VALUES ({', '.join(['%s' for _ in obj.values])})"
     write_one(insert_query)
 
 
