@@ -58,6 +58,7 @@ async def write_one(sql):
     except (Exception, psycopg2.Error) as error:
         return {'error': error}
     conn.close
+    return 1
 
 
 fake_users_db = {
@@ -229,7 +230,8 @@ async def add_user(
         }
     insert_query = f"INSERT INTO users ({', '.join(obj.keys())}) VALUES ({', '.join([format_value_for_sql(v) for v in obj.values()])})"
     print(insert_query)
-    await write_one(insert_query)
+    a = await write_one(insert_query)
+    return a
 
 
 
