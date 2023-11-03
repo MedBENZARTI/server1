@@ -211,8 +211,8 @@ async def add_user(
         "password": pwd_context.hash(new_user.password),
         "disabled": new_user.disabled
         }
-    insert_query = f"INSERT INTO users ({', '.join(obj.keys())}) VALUES ({', '.join(['%s' for _ in obj.values])})"
-    write_one(insert_query)
+    insert_query = f"INSERT INTO users ({', '.join(obj.keys())}) VALUES ({', '.join(['%s' for _ in obj.values()])})"
+    await write_one(insert_query)
 
 
 
