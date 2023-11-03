@@ -24,6 +24,22 @@ DB_CON = {
         'port'      : '5432'
     }
 
+def format_value_for_sql(value):
+    if value is None:
+        return "NULL"
+    elif isinstance(value, int):
+        return str(value)
+    elif isinstance(value, float):
+        return str(value)
+    elif isinstance(value, str):
+        # Escape single quotes in the string and wrap it in single quotes
+        return f"""'{value.replace("'", "''")}'"""
+    elif isinstance(value, bool):
+        return str(int(value))  # Convert bool to 0 or 1
+    else:
+        # If the data type is not recognized, raise an error or handle it accordingly
+        raise ValueError(f"Unsupported data type: {type(value).__name}")
+
 async def read_data(sql):
     conn = psycopg2.connect(**DB_CON)
     cur = conn.cursor()
@@ -211,7 +227,7 @@ async def add_user(
         "password": pwd_context.hash(new_user.password),
         "disabled": new_user.disabled
         }
-    insert_query = f"INSERT INTO users ({', '.join(obj.keys())}) VALUES ({', '.join(['%s' for _ in obj.values()])})"
+    insert_query = f"INSERT INTO users ({', '.join(obj.keys())}) VALUES ({', '.join([format_value_for_sql(v) for v in obj.values()])})"
     print(insert_query)
     await write_one(insert_query)
 
@@ -222,3 +238,4 @@ async def read_own_items(
     current_user: Annotated[User, Depends(get_current_active_user)]
 ):
     return [{"item_id": "Foo", "owner": current_user.username}]
+({', '.join(['%s' for _ in values])})
