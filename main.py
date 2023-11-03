@@ -114,6 +114,56 @@ class UserInReq(User):
 class UserInDB(UserInReq):
     id: int
 
+class Gender(str, Enum):
+    Gender = "Gender"
+    Mrs = "Mrs"
+    Other = "Other"
+
+
+class Status(str, Enum):
+    Open = 'Open'
+    Paid = 'Paid'
+    Invoiced = 'Invoiced'
+    Completed = 'Completed'
+    Waiting = 'Waiting'
+    ReadyToInvoice = 'ReadyToInvoice'
+    InboundCheck = 'InboundCheck'
+    Received = 'Received'
+    PickedUp = 'PickedUp'
+    InPickUp = 'InPickUp'
+    Avis = 'Avis'
+    Canceled = 'Canceled'
+    Reapply = 'Reapply'
+    PickUpFailed = 'PickUpFailed'
+
+class PickUpLogistics(str, Enum):
+    Wiechert = 'Wiechert'
+    Emons = 'Emons'
+    Gaehler = 'Gaehler'
+
+class Bike(str, Enum):
+    Bicycle = 'Bicycle'
+    Pedelec = 'Pedelec'
+    Other = 'Other'
+
+class Color(str, Enum):
+    Yellow = 'Yellow'
+    Gold = 'Gold'
+    Organe = 'Organe'
+    Red = 'Red'
+    Pink = 'Pink'
+    Purple = 'Purple'
+    Blue = 'Blue'
+    Turquoise = 'Turquoise'
+    Green = 'Green'
+    Grey = 'Grey'
+    Brown = 'Brown'
+    Copper = 'Copper'
+    White = 'White'
+    Black = 'Black'
+    Silver = 'Silver'
+    Multicolor = 'Multicolor'
+
 class Form(BaseModel):
     # mandatory
     userFirstName: str
@@ -138,14 +188,14 @@ class Form(BaseModel):
     bikeId: Union[int, None] = None
     contractSettlementPrice: Union[float, None] = None
     contractSettlementDate: Union[date, None] = None
-    status: Union[str, None] = None
-    pickUpLogistics: Union[str, None] = None
+    status: Union[Status, None] = None
+    pickUpLogistics: Union[PickUpLogistics, None] = None
     statusComment: Union[str, None] = None
     contractNumber: Union[str, None] = None
     pickUpFeedback: Union[str, None] = None
     bikeAdditionalText: Union[str, None] = None
     bikeBatteryNumber: Union[str, None] = None
-    bikeColor: Union[str, None] = None
+    bikeColor: Union[Color, None] = None
     bikeKind: Union[str, None] = None
     bikeModelYear: Union[int, None] = None
     bikeOriginalPurchasePrice: Union[float, None] = None
@@ -173,7 +223,7 @@ class Form(BaseModel):
     userFunction: Union[str, None] = None
     userGender: Union[str, None] = None
     userMobilePhone: Union[str, None] = None
-    bikeType: Union[str, None] = None
+    bikeType: Union[Bike, None] = None
 
 class FormInDB(Form):
     submittingUser: str
