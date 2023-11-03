@@ -5,14 +5,43 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from enum import Enum
+import psycopg2
+import pandas as pd
 
 # to get a string like this run:
 # openssl rand -hex 32
 SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+DB_CON = {
+        "host"      : 'rds-ticket-app-prod.czgosi3nm3l7.eu-central-1.rds.amazonaws.com',
+        "database"  : 'public',
+        "user"      : 'ticketappuser',
+        "password"  : 'GA8yDbApaTthvqgH16V0jg==',
+        'port'      : '5432'
+    }
+
+async def read_data(sql):
+    conn = psycopg2.connect(**DB_CON)
+    cur = conn.cursor()
+    cur.execute(sql)
+    rows = cur.fetchall()
+    cols = [str(col[0]) for col in cur.description ]
+    conn.close()
+    return pd.DataFrame(rows, columns=cols).to_dict('records')
+
+async def write_one(sql):
+    try:
+        conn = psycopg2.connect(**DB_CON)
+        cur = conn.cursor()
+        cur.execute(sql)
+        cur.commit()
+    except (Exception, psycopg2.Error) as error:
+        return {'error': error}
+    conn.close
 
 
 fake_users_db = {
@@ -58,15 +87,15 @@ class TokenData(BaseModel):
 
 
 class User(BaseModel):
-    id: int
     username: str
-    email: str
+    email: EmailStr
     role: Role
     name: Union[str, None] = None
     disabled: Union[bool, None] = None
 
 
 class UserInDB(User):
+    id: int
     password: str
 
 
@@ -173,7 +202,12 @@ async def add_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="You don't have permission to do this action",
         )
-    return new_user
+    obj = new_user
+    attributes = [attr for attr in dir(obj) if not callable(getattr(obj, attr)) and not attr.startswith("__")]
+    values = [getattr(obj, attr) for attr in attributes]
+    insert_query = f"INSERT INTO users ({', '.join(attributes)}) VALUES ({', '.join(['%s' for _ in values])})"
+    write_one(insert_query)
+
 
 
 @app.get("/users/me/items/")
