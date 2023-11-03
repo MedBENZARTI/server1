@@ -32,14 +32,11 @@ def format_value_for_sql(value):
         return str(value)
     elif isinstance(value, float):
         return str(value)
-    elif isinstance(value, str):
-        # Escape single quotes in the string and wrap it in single quotes
-        return f"""'{value.replace("'", "''")}'"""
     elif isinstance(value, bool):
         return str(int(value))  # Convert bool to 0 or 1
     else:
         # If the data type is not recognized, raise an error or handle it accordingly
-        raise ValueError(f"Unsupported data type: {type(value).__name}")
+        return f"""'{str(value).replace("'", "''")}'"""
 
 async def read_data(sql):
     conn = psycopg2.connect(**DB_CON)
@@ -57,7 +54,7 @@ async def write_one(sql):
         cur.execute(sql)
         conn.commit()
     except (Exception, psycopg2.Error) as error:
-        return {'error': error}
+        return {'error': error.__dict__}
     conn.close
     return 1
 
@@ -299,7 +296,7 @@ async def add_user(
                 detail="username already exists!",
             )
     insert_query = f"INSERT INTO users ({', '.join(obj.keys())}) VALUES ({', '.join([format_value_for_sql(v) for v in obj.values()])})"
-    print(insert_query)
+    
     await write_one(insert_query)
     return await read_data(f"""select id,username,email,"role","name",disabled from Users where username = '{new_user.username}'""")
 
@@ -312,8 +309,9 @@ async def add_ucontract(
     obj = new_contract.__dict__
     obj['submittingUser'] = current_user.username
     insert_query = f"INSERT INTO form ({', '.join(obj.keys())}) VALUES ({', '.join([format_value_for_sql(v) for v in obj.values()])})"
-    await write_one(insert_query)
-    return 8
+    print(insert_query)
+    q = await write_one(insert_query)
+    return q
 
 @app.get("/users/me/items/")
 async def read_own_items(
