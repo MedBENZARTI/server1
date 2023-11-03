@@ -228,11 +228,17 @@ async def add_user(
         "password": pwd_context.hash(new_user.password),
         "disabled": new_user.disabled
         }
+
+    usernames = await read_data('select distinct username from users')
+    if new_user.username in [o['username'] for o in usernames]:
+        raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="username already exists!",
+            )
     insert_query = f"INSERT INTO users ({', '.join(obj.keys())}) VALUES ({', '.join([format_value_for_sql(v) for v in obj.values()])})"
     print(insert_query)
-    a = await write_one(insert_query)
-    return a
-
+    await write_one(insert_query)
+    return await read_data(f"""select id,username,email,"role","name",disabled from Users where username = '{new_user.username}'""")
 
 
 @app.get("/users/me/items/")
