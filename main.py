@@ -130,7 +130,7 @@ class Form(BaseModel):
     bikeRrp: float
     bikeAccessories: str
     bikeFrameNumber: str
-    contractStartDate: str
+    contractStartDate: date
     contractAmount: float
     # optional
     pickDate: Union[date, None] = None
@@ -308,7 +308,7 @@ async def add_ucontract(
 ):
     obj = new_contract.__dict__
     obj['submittingUser'] = current_user.username
-    insert_query = f"""INSERT INTO form ("{'", "'.join(obj.keys())}") VALUES ({', '.join([format_value_for_sql(v) for v in obj.values()])})"""
+    insert_query = f"""INSERT INTO public."Form" ("{'", "'.join(obj.keys())}") VALUES ({', '.join([format_value_for_sql(v) for v in obj.values()])})"""
     print(insert_query)
     q = await write_one(insert_query)
     return q
