@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from typing import Annotated, Union
 
 from fastapi import Depends, FastAPI, HTTPException, status
@@ -9,6 +9,7 @@ from pydantic import BaseModel, EmailStr
 from enum import Enum
 import psycopg2
 import pandas as pd
+
 
 # to get a string like this run:
 # openssl rand -hex 32
@@ -116,6 +117,69 @@ class UserInReq(User):
 class UserInDB(UserInReq):
     id: int
 
+class Form(BaseModel):
+    # mandatory
+    userFirstName: str
+    userLastName: str 
+    userEmail: EmailStr
+    userTelephone: str
+    userStreet: str
+    userHouseNumber: str
+    userZipCode: str
+    userCity: str
+    userCountry: str
+    bikeBrand: str
+    bikeModel: str
+    bikeRrp: float
+    bikeAccessories: str
+    bikeFrameNumber: str
+    contractStartDate: str
+    contractAmount: float
+    # optional
+    pickDate: Union[date, None] = None
+    bikeSize: Union[str, None] = None
+    bikeId: Union[int, None] = None
+    contractSettlementPrice: Union[float, None] = None
+    contractSettlementDate: Union[date, None] = None
+    status: Union[str, None] = None
+    pickUpLogistics: Union[str, None] = None
+    statusComment: Union[str, None] = None
+    contractNumber: Union[str, None] = None
+    pickUpFeedback: Union[str, None] = None
+    bikeAdditionalText: Union[str, None] = None
+    bikeBatteryNumber: Union[str, None] = None
+    bikeColor: Union[str, None] = None
+    bikeKind: Union[str, None] = None
+    bikeModelYear: Union[int, None] = None
+    bikeOriginalPurchasePrice: Union[float, None] = None
+    bikeOriginalPurchasePriceNet: Union[float, None] = None
+    bikeUser: Union[str, None] = None
+    contractAttachment: Union[str, None] = None
+    contractCommunicationError: Union[str, None] = None
+    contractConditionBasedReduction: Union[float, None] = None
+    contractDeliveryInformation: Union[str, None] = None
+    contractPartsBasedReduction: Union[float, None] = None
+    contractPartsMissing: Union[str, None] = None
+    contractSentToLogistics: Union[bool, None] = None
+    contractStateChangedDate: Union[date, None] = None
+    contractSubmitDate: Union[date, None] = None
+    pickContractReceived: Union[bool, None] = None
+    pickEarliest: Union[date, None] = None
+    pickTimeFrom: Union[str, None] = None
+    pickTimeTill: Union[str, None] = None
+    pickUpOkay: Union[bool, None] = None
+    userCompany: Union[str, None] = None
+    userDeviatingPickup: Union[bool, None] = None
+    userDeviatingPickupAddress: Union[str, None] = None
+    # userEmailId: Union[str, None] = None
+    userFederalState: Union[str, None] = None
+    userFunction: Union[str, None] = None
+    userGender: Union[str, None] = None
+    userMobilePhone: Union[str, None] = None
+    bikeType: Union[str, None] = None
+
+class FormInDB(Form):
+    submittingUser: str
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -126,7 +190,6 @@ app = FastAPI()
 
 def verify_password(plain_password, password):
     return pwd_context.verify(plain_password, password)
-
 
 def get_password_hash(password):
     return pwd_context.hash(password)
@@ -240,6 +303,17 @@ async def add_user(
     await write_one(insert_query)
     return await read_data(f"""select id,username,email,"role","name",disabled from Users where username = '{new_user.username}'""")
 
+
+@app.post("/contracts/add/")
+async def add_ucontract(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    new_contract: Form
+):
+    obj = new_contract.__dict__
+    obj['submittingUser'] = current_user.username
+    insert_query = f"INSERT INTO form ({', '.join(obj.keys())}) VALUES ({', '.join([format_value_for_sql(v) for v in obj.values()])})"
+    await write_one(insert_query)
+    return 8
 
 @app.get("/users/me/items/")
 async def read_own_items(
