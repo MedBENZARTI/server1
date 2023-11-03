@@ -38,7 +38,7 @@ async def write_one(sql):
         conn = psycopg2.connect(**DB_CON)
         cur = conn.cursor()
         cur.execute(sql)
-        cur.commit()
+        conn.commit()
     except (Exception, psycopg2.Error) as error:
         return {'error': error}
     conn.close
@@ -212,6 +212,7 @@ async def add_user(
         "disabled": new_user.disabled
         }
     insert_query = f"INSERT INTO users ({', '.join(obj.keys())}) VALUES ({', '.join(['%s' for _ in obj.values()])})"
+    print(insert_query)
     await write_one(insert_query)
 
 
