@@ -10,6 +10,7 @@ import pandas as pd
 from datetime import datetime, timedelta, date
 from typing import Annotated, Union
 from jose import JWTError, jwt
+import orjson
 
 
 
@@ -242,4 +243,5 @@ async def read_contracts(
     current_user: Annotated[User, Depends(get_current_active_user)]
 ):
     db = await read_data('select * public."Form"')
-    return {"data": db}
+    return {"data": orjson.dumps(db, option=orjson.OPT_ALLOW_NONFINITE)}
+
