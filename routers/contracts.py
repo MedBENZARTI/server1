@@ -153,6 +153,12 @@ class Form(BaseModel):
 class FormInDB(Form):
     submittingUser: str
 
+from users import User
+
+class User:
+    def __init__(self):
+        self.User = User()
+
 '''
 @router.post("/contracts/add/")
 async def add_ucontract(
