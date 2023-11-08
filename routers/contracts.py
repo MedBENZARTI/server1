@@ -202,6 +202,16 @@ async def read_data(sql):
     conn.close()
     return json.loads(pd.DataFrame(rows, columns=cols).to_json(orient = 'records'))
 
+async def write_one(sql):
+    try:
+        conn = psycopg2.connect(**DB_CON)
+        cur = conn.cursor()
+        cur.execute(sql)
+        conn.commit()
+    except (Exception, psycopg2.Error) as error:
+        return {'error': error.__dict__}
+    conn.close
+    return 1
 
 async def get_user(username: str):
     db = await read_data('select * from users')
@@ -325,4 +335,5 @@ async def add_ucontract(
         'bikeType' : new_contract.bikeType.value
     }
     insert_query = f"""INSERT INTO public."Form" ("{'", "'.join(obj.keys())}") VALUES ({', '.join([format_value_for_sql(v) for v in obj.values()])})"""
-    return {"query": insert_query}
+    q = await write_one(insert_query)
+    return q
