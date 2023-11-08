@@ -10,6 +10,8 @@ import pandas as pd
 from datetime import datetime, timedelta, date
 from typing import Annotated, Union
 from jose import JWTError, jwt
+import json
+
 
 
 DB_CON = {
@@ -84,7 +86,8 @@ async def read_data(sql):
     rows = cur.fetchall()
     cols = [str(col[0]) for col in cur.description ]
     conn.close()
-    return pd.DataFrame(rows, columns=cols).to_dict('records')
+    return json.loads(pd.DataFrame(rows, columns=cols).to_json(orient = 'records'))
+
 
 def verify_password(plain_password, password):
     return pwd_context.verify(plain_password, password)

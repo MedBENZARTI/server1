@@ -86,9 +86,9 @@ class Color(str, Enum):
     Multicolor = 'Multicolor'
 
 class communicationError(str, Enum):
-    none = 'None'
     Bounced = 'Bounced'
     IncorrectPhone = 'IncorrectPhone'
+    none = 'None'
 
 class userRole(str, Enum):
     BackendUserLeasing = 'BackendUserLeasing'
@@ -157,7 +157,7 @@ class Form(BaseModel):
     # userEmailId: Union[str, None] = None
     userFederalState: Union[str, None] = None
     userFunction: Union[str, None] = None
-    userGender: Union[str, None] = None
+    userGender: Union[Gender, None] = None
     userMobilePhone: Union[str, None] = None
     bikeType: Union[Bike, None] = None
 
@@ -179,6 +179,19 @@ class UserInDB(UserInReq):
 
 class TokenData(BaseModel):
     username: Union[str, None] = None
+
+def format_value_for_sql(value):
+    if value is None:
+        return "NULL"
+    elif isinstance(value, int):
+        return str(value)
+    elif isinstance(value, float):
+        return str(value)
+    elif isinstance(value, bool):
+        return str(int(value))  # Convert bool to 0 or 1
+    else:
+        # If the data type is not recognized, raise an error or handle it accordingly
+        return f"""'{str(value).replace("'", "''")}'"""
 
 async def read_data(sql):
     conn = psycopg2.connect(**DB_CON)
@@ -247,3 +260,70 @@ async def read_contracts(
     db = await read_data('select * from  public."Form"')
     return {"data": db}
 
+@router.post("/contracts/add/")
+async def add_ucontract(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    new_contract: Form
+):
+    obj = FormInDB(
+        submittingUser = current_user.username,
+        userFirstName = new_contract.userFirstName,
+        userLastName = new_contract.userLastName,
+        userEmail = new_contract.userEmail,
+        userTelephone = new_contract.userTelephone,
+        userStreet = new_contract.userStreet,
+        userHouseNumber = new_contract.userHouseNumber,
+        userZipCode = new_contract.userZipCode,
+        userCity = new_contract.userCity,
+        userCountry = new_contract.userCountry,
+        bikeBrand = new_contract.bikeBrand,
+        bikeModel = new_contract.bikeModel,
+        bikeRrp = new_contract.bikeRrp,
+        bikeAccessories = new_contract.bikeAccessories,
+        bikeFrameNumber = new_contract.bikeFrameNumber,
+        contractStartDate = new_contract.contractStartDate,
+        contractAmount = new_contract.contractAmount,
+        pickDate = new_contract.pickDate,
+        bikeSize = new_contract.bikeSize,
+        bikeId = new_contract.bikeId,
+        contractSettlementPrice = new_contract.contractSettlementPrice,
+        contractSettlementDate = new_contract.contractSettlementDate,
+        status = new_contract.status.value,
+        pickUpLogistics = new_contract.pickUpLogistics.value,
+        statusComment = new_contract.statusComment,
+        contractNumber = new_contract.contractNumber,
+        pickUpFeedback = new_contract.pickUpFeedback,
+        bikeAdditionalText = new_contract.bikeAdditionalText,
+        bikeBatteryNumber = new_contract.bikeBatteryNumber,
+        bikeColor = new_contract.bikeColor.value,
+        bikeKind = new_contract.bikeKind,
+        bikeModelYear = new_contract.bikeModelYear,
+        bikeOriginalPurchasePrice = new_contract.bikeOriginalPurchasePrice,
+        bikeOriginalPurchasePriceNet = new_contract.bikeOriginalPurchasePriceNet,
+        bikeUser = new_contract.bikeUser,
+        contractAttachment = new_contract.contractAttachment,
+        contractCommunicationError = new_contract.contractCommunicationError.value,
+        contractConditionBasedReduction = new_contract.contractConditionBasedReduction,
+        contractDeliveryInformation = new_contract.contractDeliveryInformation,
+        contractPartsBasedReduction = new_contract.contractPartsBasedReduction,
+        contractPartsMissing = new_contract.contractPartsMissing,
+        contractSentToLogistics = new_contract.contractSentToLogistics,
+        contractStateChangedDate = new_contract.contractStateChangedDate,
+        contractSubmitDate = new_contract.contractSubmitDate,
+        pickContractReceived = new_contract.pickContractReceived,
+        pickEarliest = new_contract.pickEarliest,
+        pickTimeFrom = new_contract.pickTimeFrom,
+        pickTimeTill = new_contract.pickTimeTill,
+        pickUpOkay = new_contract.pickUpOkay,
+        userCompany = new_contract.userCompany,
+        userDeviatingPickup = new_contract.userDeviatingPickup,
+        userDeviatingPickupAddress = new_contract.userDeviatingPickupAddress,
+        userFederalState = new_contract.userFederalState,
+        userFunction = new_contract.userFunction,
+        userGender = new_contract.userGender.value,
+        userMobilePhone = new_contract.userMobilePhone,
+        bikeType = new_contract.bikeType.value
+    )
+    obj = obj.__dict__
+    insert_query = f"""INSERT INTO public."Form" ("{'", "'.join(obj.keys())}") VALUES ({', '.join([format_value_for_sql(v) for v in obj.values()])})"""
+    return {"query": insert_query}
