@@ -149,7 +149,7 @@ async def get_current_active_user(
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     if current_user.role != 'admin':
-        raise HTTPException(status_code=100, detail="The user does not have the required permissions to perform the requested action.")
+        raise HTTPException(status_code=403, detail="The user does not have the required permissions to perform the requested action.")
     return current_user
 
 @router.post("/token", response_model=Token)
