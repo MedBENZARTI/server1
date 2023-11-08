@@ -82,7 +82,7 @@ class TokenData(BaseModel):
 class User(BaseModel):
     username: str
     email: EmailStr
-    role: Role
+    role: str # Role
     name: Union[str, None] = None
     disabled: Union[bool, None] = None
 
@@ -259,7 +259,6 @@ def get_password_hash(password):
 async def get_user(username: str):
     db = await read_data('select * from users')
     db = {o['username']:o for o in db}
-    db = {**db, **fake_users_db}
     print(db)
     if username in db:
         user_dict = db[username]
@@ -301,7 +300,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
         token_data = TokenData(username=username)
     except JWTError:
         raise credentials_exception
-    user = get_user(username=token_data.username)
+    user = await get_user(username=token_data.username)
     if user is None:
         raise credentials_exception
     return user
@@ -310,12 +309,13 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
 async def get_current_active_user(
     current_user: Annotated[User, Depends(get_current_user)]
 ):
+    print(current_user)
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
 
-@app.post("/api/auth", response_model=Token)
+@app.post("/token", response_model=Token)
 async def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ):
@@ -333,13 +333,13 @@ async def login_for_access_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@app.get("/api/users/me/", response_model=User)
+@app.get("/users/me/", response_model=User)
 async def read_users_me(
     current_user: Annotated[User, Depends(get_current_active_user)]
 ):
     return current_user
 
-@app.post("/api/users/new/")
+@app.post("/users/new/")
 async def add_user(
     current_user: Annotated[User, Depends(get_current_active_user)],
     new_user: UserInReq
