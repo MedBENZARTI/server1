@@ -41,7 +41,7 @@ class TokenData(BaseModel):
 class User(BaseModel):
     username: str
     email: EmailStr
-    role: str # Role
+    role: Role
     name: Union[str, None] = None
     disabled: Union[bool, None] = None
 
