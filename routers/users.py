@@ -217,6 +217,11 @@ async def read_own_items(
 async def read_own_items(
     current_user: Annotated[User, Depends(get_current_active_user)]
 ):
+    if current_user.role != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="You don't have permission to do this action",
+        )
     db = await read_data('select * from users')
     db = {o['username']:o for o in db}
     return [{"data": db}]
