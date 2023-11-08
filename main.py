@@ -189,7 +189,7 @@ class FormInDB(Form):
 
 
 app = FastAPI()
-app.include_router(users.router, prefix="/", tags=["users"])
+app.include_router(users.router, prefix="", tags=["Users"])
 
 
 '''
