@@ -10,7 +10,8 @@ import pandas as pd
 from datetime import datetime, timedelta, date
 from typing import Annotated, Union
 from jose import JWTError, jwt
-import orjson
+import json
+
 
 
 
@@ -186,7 +187,8 @@ async def read_data(sql):
     rows = cur.fetchall()
     cols = [str(col[0]) for col in cur.description ]
     conn.close()
-    return pd.DataFrame(rows, columns=cols).to_dict('records')
+    return json.loads(pd.DataFrame(rows, columns=cols).to_json(orient = 'records'))
+
 
 async def get_user(username: str):
     db = await read_data('select * from users')
@@ -243,5 +245,5 @@ async def read_contracts(
     current_user: Annotated[User, Depends(get_current_active_user)]
 ):
     db = await read_data('select * from  public."Form"')
-    return {"data": orjson.dumps(db, option=orjson.OPT_ALLOW_NONFINITE)}
+    return {"data": db}
 
