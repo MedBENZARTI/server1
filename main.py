@@ -259,6 +259,7 @@ def get_password_hash(password):
 async def get_user(username: str):
     db = await read_data('select * from users')
     db = {o['username']:o for o in db}
+    db = {**db, **fake_users_db}
     if username in db:
         user_dict = db[username]
         return UserInDB(**user_dict)
