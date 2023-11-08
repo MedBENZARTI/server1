@@ -9,8 +9,9 @@ from fastapi import Depends, FastAPI, HTTPException, status
 import pandas as pd
 from datetime import datetime, timedelta, date
 from typing import Annotated, Union
+from jose import JWTError, jwt
 
-from users import User, get_current_active_user, read_data
+
 
 DB_CON = {
         "host"      : 'rds-ticket-app-prod.czgosi3nm3l7.eu-central-1.rds.amazonaws.com',
@@ -20,7 +21,15 @@ DB_CON = {
         'port'      : '5432'
     }
 
+SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
 router = APIRouter()
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 class Gender(str, Enum):
     Mr = "Mr"
@@ -153,11 +162,66 @@ class Form(BaseModel):
 class FormInDB(Form):
     submittingUser: str
 
-from users import User
+class User(BaseModel):
+    username: str
+    email: EmailStr
+    role: str # Role
+    name: Union[str, None] = None
+    disabled: Union[bool, None] = None
 
-class User:
-    def __init__(self):
-        self.User = User()
+class UserInReq(User):
+    password: str
+
+class UserInDB(UserInReq):
+    id: int
+
+class TokenData(BaseModel):
+    username: Union[str, None] = None
+
+async def read_data(sql):
+    conn = psycopg2.connect(**DB_CON)
+    cur = conn.cursor()
+    cur.execute(sql)
+    rows = cur.fetchall()
+    cols = [str(col[0]) for col in cur.description ]
+    conn.close()
+    return pd.DataFrame(rows, columns=cols).to_dict('records')
+
+async def get_user(username: str):
+    db = await read_data('select * from users')
+    db = {o['username']:o for o in db}
+    print(db)
+    if username in db:
+        user_dict = db[username]
+        return UserInDB(**user_dict)
+
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        token_data = TokenData(username=username)
+    except JWTError:
+        raise credentials_exception
+    user = await get_user(username=token_data.username)
+    if user is None:
+        raise credentials_exception
+    return user
+
+
+async def get_current_active_user(
+    current_user: Annotated[User, Depends(get_current_user)]
+):
+    print(current_user)
+    if current_user.disabled:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user
 
 '''
 @router.post("/contracts/add/")
