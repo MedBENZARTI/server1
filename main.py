@@ -38,25 +38,7 @@ def format_value_for_sql(value):
         # If the data type is not recognized, raise an error or handle it accordingly
         return f"""'{str(value).replace("'", "''")}'"""
 
-async def read_data(sql):
-    conn = psycopg2.connect(**DB_CON)
-    cur = conn.cursor()
-    cur.execute(sql)
-    rows = cur.fetchall()
-    cols = [str(col[0]) for col in cur.description ]
-    conn.close()
-    return pd.DataFrame(rows, columns=cols).to_dict('records')
 
-async def write_one(sql):
-    try:
-        conn = psycopg2.connect(**DB_CON)
-        cur = conn.cursor()
-        cur.execute(sql)
-        conn.commit()
-    except (Exception, psycopg2.Error) as error:
-        return {'error': error.__dict__}
-    conn.close
-    return 1
 
 
 fake_users_db = {
@@ -95,12 +77,8 @@ class Role(str, Enum):
 class Token(BaseModel):
     access_token: str
     token_type: str
-
-
 class TokenData(BaseModel):
     username: Union[str, None] = None
-
-
 class User(BaseModel):
     username: str
     email: EmailStr
@@ -115,7 +93,7 @@ class UserInDB(UserInReq):
     id: int
 
 class Gender(str, Enum):
-    Gender = "Gender"
+    Mr = "Mr"
     Mrs = "Mrs"
     Other = "Other"
 
@@ -136,10 +114,12 @@ class Status(str, Enum):
     Reapply = 'Reapply'
     PickUpFailed = 'PickUpFailed'
 
+
 class PickUpLogistics(str, Enum):
     Wiechert = 'Wiechert'
     Emons = 'Emons'
     Gaehler = 'Gaehler'
+    Alltrans = 'Alltrans'
 
 class Bike(str, Enum):
     Bicycle = 'Bicycle'
@@ -163,6 +143,21 @@ class Color(str, Enum):
     Black = 'Black'
     Silver = 'Silver'
     Multicolor = 'Multicolor'
+
+class communicationError(str, Enum):
+    none = 'None'
+    Bounced = 'Bounced'
+    IncorrectPhone = 'IncorrectPhone'
+
+class userRole(str, Enum):
+    BackendUserLeasing = 'BackendUserLeasing'
+    FrontUser = 'FrontUser'
+    SuperBackendUser = 'SuperBackendUser'
+    BackendUserCustomerCare = 'BackendUserCustomerCare'
+    BackendUserLogisticsWI = 'BackendUserLogisticsWI'
+    BackendUserLogisticsEM = 'BackendUserLogisticsEM'
+    BackendUserLogisticsGA = 'BackendUserLogisticsGA'
+    BackendUserLogisticsAT = 'BackendUserLogisticsAT'
 
 class Form(BaseModel):
     # mandatory
@@ -202,7 +197,7 @@ class Form(BaseModel):
     bikeOriginalPurchasePriceNet: Union[float, None] = None
     bikeUser: Union[str, None] = None
     contractAttachment: Union[str, None] = None
-    contractCommunicationError: Union[str, None] = None
+    contractCommunicationError: Union[communicationError, None] = None
     contractConditionBasedReduction: Union[float, None] = None
     contractDeliveryInformation: Union[str, None] = None
     contractPartsBasedReduction: Union[float, None] = None
@@ -234,6 +229,25 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 app = FastAPI()
 
+async def read_data(sql):
+    conn = psycopg2.connect(**DB_CON)
+    cur = conn.cursor()
+    cur.execute(sql)
+    rows = cur.fetchall()
+    cols = [str(col[0]) for col in cur.description ]
+    conn.close()
+    return pd.DataFrame(rows, columns=cols).to_dict('records')
+
+async def write_one(sql):
+    try:
+        conn = psycopg2.connect(**DB_CON)
+        cur = conn.cursor()
+        cur.execute(sql)
+        conn.commit()
+    except (Exception, psycopg2.Error) as error:
+        return {'error': error.__dict__}
+    conn.close
+    return 1
 
 def verify_password(plain_password, password):
     return pwd_context.verify(plain_password, password)
@@ -242,14 +256,16 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-def get_user(db, username: str):
+async def get_user(username: str):
+    db = await read_data('select * from users')
+    db = {o['username']:o for o in db}
     if username in db:
         user_dict = db[username]
         return UserInDB(**user_dict)
 
 
-def authenticate_user(fake_db, username: str, password: str):
-    user = get_user(fake_db, username)
+async def authenticate_user(username: str, password: str):
+    user = await get_user(username)
     if not user:
         return False
     if not verify_password(password, user.password):
@@ -268,6 +284,7 @@ def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None
     return encoded_jwt
 
 
+
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -282,7 +299,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
         token_data = TokenData(username=username)
     except JWTError:
         raise credentials_exception
-    user = get_user(fake_users_db, username=token_data.username)
+    user = get_user(username=token_data.username)
     if user is None:
         raise credentials_exception
     return user
@@ -296,11 +313,11 @@ async def get_current_active_user(
     return current_user
 
 
-@app.post("/token", response_model=Token)
+@app.post("/api/auth", response_model=Token)
 async def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ):
-    user = authenticate_user(fake_users_db, form_data.username, form_data.password)
+    user = await authenticate_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -314,13 +331,13 @@ async def login_for_access_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@app.get("/users/me/", response_model=User)
+@app.get("/api/users/me/", response_model=User)
 async def read_users_me(
     current_user: Annotated[User, Depends(get_current_active_user)]
 ):
     return current_user
 
-@app.post("/users/new/")
+@app.post("/api/users/new/")
 async def add_user(
     current_user: Annotated[User, Depends(get_current_active_user)],
     new_user: UserInReq
@@ -368,3 +385,17 @@ async def read_own_items(
     current_user: Annotated[User, Depends(get_current_active_user)]
 ):
     return [{"item_id": "Foo", "owner": current_user.username}]
+
+@app.get("/users/all")
+async def read_own_items(
+    current_user: Annotated[User, Depends(get_current_active_user)]
+):
+    db = await read_data('select * from users')
+    db = {o['username']:o for o in db}
+    return [{"data": db}]
+
+
+
+
+
+
