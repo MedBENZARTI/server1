@@ -242,6 +242,6 @@ async def add_ucontract(
 async def read_contracts(
     current_user: Annotated[User, Depends(get_current_active_user)]
 ):
-    db = await read_data('select * public."Form"')
+    db = await read_data('select * from  public."Form"')
     return {"data": orjson.dumps(db, option=orjson.OPT_ALLOW_NONFINITE)}
 
