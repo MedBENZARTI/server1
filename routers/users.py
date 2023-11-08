@@ -148,15 +148,9 @@ async def get_current_active_user(
 ):
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
-    return current_user
-
-async def get_current_role_user(
-    current_user: Annotated[User, Depends(get_current_user)]
-):
     if current_user.role != 'admin':
         raise HTTPException(status_code=100, detail="The user does not have the required permissions to perform the requested action.")
     return current_user
-
 
 @router.post("/token", response_model=Token)
 async def login_for_access_token(
@@ -221,7 +215,7 @@ async def read_own_items(
 
 @router.get("/users/all")
 async def read_own_items(
-    current_user: Annotated[User, Depends(get_current_active_user), Depends(get_current_role_user)]
+    current_user: Annotated[User, Depends(get_current_active_user)]
 ):
     db = await read_data('select * from users')
     db = {o['username']:o for o in db}
