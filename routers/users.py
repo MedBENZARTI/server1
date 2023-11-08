@@ -31,8 +31,8 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 class Role(str, Enum):
-    admin = "admin"
     user = "user"
+    admin = "admin"
 class Token(BaseModel):
     access_token: str
     token_type: str

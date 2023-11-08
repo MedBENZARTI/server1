@@ -267,11 +267,11 @@ async def add_ucontract(
 async def read_contracts(
     current_user: Annotated[User, Depends(get_current_active_user)]
 ):
-    db = await read_data('select * from  public."Form"')
     if current_user.role == 'admin':
-        return {"data": db}
+        db = await read_data('select * from  public."Form"')
     else:
-        return {"data": [ o for o in db if o['submittingUser'] == current_user.username]}
+        db = await read_data(f"""select * from  public."Form" where submittingUser = '{current_user.username}' """)
+    return {"data": db}
 
 @router.post("/contracts/add/")
 async def add_ucontract(
