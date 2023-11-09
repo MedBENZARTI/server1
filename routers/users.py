@@ -220,10 +220,8 @@ async def add_user(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="username already exists!",
             )
-    insert_query = f"INSERT INTO users ({', '.join(obj.keys())}) VALUES ({', '.join([format_value_for_sql(v) for v in obj.values()])})"
-    
-    user_created = await write_one(insert_query)
-    return {'success':  'User Created'} if user_created else {'error':  'Problem with database'}
+    user_created = await write_one(obj, 'users')
+    return {'success':  'User Created', 'data': user_created} if user_created else {'error':  'Problem with database'}
     
 
 
