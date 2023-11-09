@@ -275,7 +275,7 @@ async def read_contracts(
 @router.post("/contracts/add/")
 async def add_ucontract(
     current_user: Annotated[User, Depends(get_current_active_user)],
-    new_contract: Form
+    new_contract: [Form]
 ):
     obj = {
         'submittingUser' : current_user.username,
