@@ -74,10 +74,15 @@ async def write_one(sql):
         cur = conn.cursor()
         cur.execute(sql)
         conn.commit()
-    except (Exception, psycopg2.Error) as error:
-        return {'error': error.__dict__}
-    conn.close
-    return 1
+        new_row = cur.fetchone()
+        cur.close()
+        conn.close()
+        return new_row
+    except (psycopg2.Error) as error:
+        cur.close()
+        conn.close()
+        return {'error': error}
+
 
 async def read_data(sql):
     conn = psycopg2.connect(**DB_CON)
@@ -98,7 +103,6 @@ def get_password_hash(password):
 async def get_user(username: str):
     db = await read_data('select * from users')
     db = {o['username']:o for o in db}
-    print(db)
     if username in db:
         user_dict = db[username]
         return UserInDB(**user_dict)
@@ -148,9 +152,17 @@ async def get_current_active_user(
 ):
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user
+
+async def get_current_active_admin_user(
+    current_user: Annotated[User, Depends(get_current_user)]
+):
+    if current_user.disabled:
+        raise HTTPException(status_code=400, detail="Inactive user")
     if current_user.role != 'admin':
         raise HTTPException(status_code=403, detail="The user does not have the required permissions to perform the requested action.")
     return current_user
+
 
 @router.post("/token", response_model=Token)
 async def login_for_access_token(
@@ -178,7 +190,7 @@ async def read_users_me(
 
 @router.post("/users/new/")
 async def add_user(
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_active_admin_user)],
     new_user: UserInReq
 ):
     if current_user.role != 'admin':
@@ -203,20 +215,20 @@ async def add_user(
             )
     insert_query = f"INSERT INTO users ({', '.join(obj.keys())}) VALUES ({', '.join([format_value_for_sql(v) for v in obj.values()])})"
     
-    await write_one(insert_query)
-    return await read_data(f"""select id,username,email,"role","name",
-    disabled from Users where username = '{new_user.username}'""")
+    new_user = await write_one(insert_query)
+    return {'data':  new_user}
+    
 
-@router.get("/users/me/items/")
-async def read_own_items(
-    current_user: Annotated[User, Depends(get_current_active_user)]
-):
-    return [{"item_id": "Foo", "owner": current_user.username}]
 
-@router.get("/users/all")
-async def read_own_items(
-    current_user: Annotated[User, Depends(get_current_active_user)]
+@router.get("/users")
+async def read_all_users(
+    current_user: Annotated[User, Depends(get_current_active_admin_user)]
 ):
-    db = await read_data('select * from users')
-    db = {o['username']:o for o in db}
-    return [{"data": db}]
+    try:
+        db = await read_data('select * from users')
+        if 'error' in db:
+            return {"error": 'Error with database'}
+        db = {o['username']:o for o in db}
+        return {"data": db}
+    except:
+        return {"error": 'Error with server'}
