@@ -212,6 +212,31 @@ async def write_one(obj, table, returns = '*'):
         conn.close()
         return False
 
+async def insert_many(table: str, id_column: str, values: list):
+    if not values:
+        return []
+    try:
+        conn = psycopg2.connect(**DB_CON)
+        cur = conn.cursor()
+        keys = values[0].keys()
+        query = cur.mogrify("INSERT INTO {} ({}) VALUES {} RETURNING {}".format(
+                table,
+                ', '.join([f'"{o}"' for o in keys]),
+                ', '.join(['%s'] * len(values)),
+                id_column
+            ), [tuple(v.values()) for v in values])
+        cur.execute(query)
+        cols = [str(col[0]) for col in cur.description ]
+        values = cur.fetchall()
+        conn.commit()
+        cur.close()
+        conn.close()
+        return  [dict(zip(cols,val)) for val in values]
+    except (psycopg2.Error) as error:
+        cur.close()
+        conn.close()
+        return False
+
 async def get_user(username: str):
     db = await read_data('select * from users')
     db = {o['username']:o for o in db}
@@ -275,9 +300,9 @@ async def read_contracts(
 @router.post("/contracts/add/")
 async def add_ucontract(
     current_user: Annotated[User, Depends(get_current_active_user)],
-    new_contract: List[Form]
+    new_contracts: List[Form]
 ):
-    obj = {
+    obj = [{
         'submittingUser' : current_user.username,
         'userFirstName' : new_contract.userFirstName,
         'userLastName' : new_contract.userLastName,
@@ -335,9 +360,9 @@ async def add_ucontract(
         'userGender' : new_contract.userGender.value,
         'userMobilePhone' : new_contract.userMobilePhone,
         'bikeType' : new_contract.bikeType.value
-    }
+    } for new_contract in new_contracts]
     
-    con_created = await write_one(obj, 'public."Form"')
+    con_created = await insert_many('public."Form"', '*',obj)
     return {
         'data': con_created
     }
