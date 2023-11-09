@@ -74,14 +74,13 @@ async def write_one(sql):
         cur = conn.cursor()
         cur.execute(sql)
         conn.commit()
-        new_row = cur.fetchone()
         cur.close()
         conn.close()
-        return new_row
+        return True
     except (psycopg2.Error) as error:
         cur.close()
         conn.close()
-        return {'error': error}
+        return False
 
 
 async def read_data(sql):
@@ -215,8 +214,8 @@ async def add_user(
             )
     insert_query = f"INSERT INTO users ({', '.join(obj.keys())}) VALUES ({', '.join([format_value_for_sql(v) for v in obj.values()])})"
     
-    new_user = await write_one(insert_query)
-    return {'data':  new_user}
+    user_created = await write_one(insert_query)
+    return {'success':  'User Created'} if user_created else {'error':  'Problem with database'}
     
 
 
