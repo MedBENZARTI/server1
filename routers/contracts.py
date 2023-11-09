@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from typing import Annotated, Union
+from typing import Annotated, Union, List
 from pydantic import BaseModel, EmailStr
 from enum import Enum
 from passlib.context import CryptContext
@@ -275,7 +275,7 @@ async def read_contracts(
 @router.post("/contracts/add/")
 async def add_ucontract(
     current_user: Annotated[User, Depends(get_current_active_user)],
-    new_contract: [Form]
+    new_contract: List[Form]
 ):
     obj = {
         'submittingUser' : current_user.username,
