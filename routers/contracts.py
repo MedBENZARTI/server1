@@ -208,10 +208,13 @@ async def write_one(sql):
         cur = conn.cursor()
         cur.execute(sql)
         conn.commit()
-    except (Exception, psycopg2.Error) as error:
-        return {'error': error.__dict__}
-    conn.close
-    return 1
+        cur.close()
+        conn.close()
+        return True
+    except (psycopg2.Error) as error:
+        cur.close()
+        conn.close()
+        return False
 
 async def get_user(username: str):
     db = await read_data('select * from users')
@@ -338,5 +341,6 @@ async def add_ucontract(
         'bikeType' : new_contract.bikeType.value
     }
     insert_query = f"""INSERT INTO public."Form" ("{'", "'.join(obj.keys())}") VALUES ({', '.join([format_value_for_sql(v) for v in obj.values()])})"""
-    q = await write_one(insert_query)
-    return q
+    con_created = await write_one(insert_query)
+    if con_created:
+        return await read_data("""  """)
