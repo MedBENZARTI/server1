@@ -459,8 +459,26 @@ async def update_contract(
     read_sql = """ select distinct "processId" from public."Form" """
     if current_user.role != 'admin':
         read_sql +=  f"""where "submittingUser" ='{current_user.username}' """
-    current_users_contracts = await read_data(read_sql)
-    
+    current_users_contracts = [ o['processId'] for o in await read_data(read_sql)]
+    not_available_ids = [id for id in updates.processIds if id not in current_users_contracts]
+    if not not_available_ids:
+        pid = ', '.join(not_available_ids)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"These processIds are not found: {pid}")
+    updated = []
+    not_updated = []
+    for id in updates.processIds:
+        try:
+            keys_to_update = [ k for k,v in updates.__dict__.items() if v and k != 'processIds']
+            enums = ['status', 'pickUpLogistics', 'bikeColor', 'contractCommunicationError', 'userGender', 'bikeType']
+            obj = {
+                k: updates.__dict__[k] if k not in enums else updates.__dict__[k].value
+                for k in keys_to_update
+            }
+            updated_obj = await update_one(id, 'processIds', obj, 'public."Form"')
+            updated.append(updated_obj)
+        except:
+            not_updated.append(id)
     return {
-        'data': current_users_contracts
+        'updated': updated,
+        'not_updated': not_updated
     }
