@@ -482,5 +482,4 @@ async def update_contract(
         'updated': updated,
         'not_updated': not_updated
     }
-    print(res)
-    return 1
+    return res
