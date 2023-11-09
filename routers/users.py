@@ -221,7 +221,7 @@ async def add_user(
                 detail="username already exists!",
             )
     res = await write_one(obj, 'users')
-    user_created = { key: res[i] for i, key in enumerate(obj.keys())}
+    user_created = { key: res[i] for i, key in enumerate( ['id'] + list(obj.keys()))}
     user_created.pop('password')
     return {'success':  'User Created', 'data': user_created} if user_created else {'error':  'Problem with database'}
     
