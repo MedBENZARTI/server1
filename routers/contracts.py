@@ -160,6 +160,67 @@ class Form(BaseModel):
     userGender: Union[Gender, None] = None
     userMobilePhone: Union[str, None] = None
     bikeType: Union[Bike, None] = None
+class FormsToUpdate(BaseModel):
+    # mandatory
+    processIds: List[int]
+    userFirstName: Union[str, None] = None
+    userLastName: Union[str, None] = None 
+    userEmail: Union[EmailStr, None] = None 
+    userTelephone: Union[str, None] = None 
+    userStreet: Union[str, None] = None 
+    userHouseNumber: Union[str, None] = None 
+    userZipCode: Union[str, None] = None 
+    userCity: Union[str, None] = None 
+    userCountry: Union[str, None] = None 
+    bikeBrand: Union[str, None] = None 
+    bikeModel: Union[str, None] = None 
+    bikeRrp: Union[float, None] = None 
+    bikeAccessories: Union[str, None] = None 
+    bikeFrameNumber: Union[str, None] = None 
+    contractStartDate: Union[date, None] = None 
+    contractAmount: Union[float, None] = None 
+    # optional
+    pickDate: Union[date, None] = None
+    bikeSize: Union[str, None] = None
+    bikeId: Union[int, None] = None
+    contractSettlementPrice: Union[float, None] = None
+    contractSettlementDate: Union[date, None] = None
+    status: Union[Status, None] = None
+    pickUpLogistics: Union[PickUpLogistics, None] = None
+    statusComment: Union[str, None] = None
+    contractNumber: Union[str, None] = None
+    pickUpFeedback: Union[str, None] = None
+    bikeAdditionalText: Union[str, None] = None
+    bikeBatteryNumber: Union[str, None] = None
+    bikeColor: Union[Color, None] = None
+    bikeKind: Union[str, None] = None
+    bikeModelYear: Union[int, None] = None
+    bikeOriginalPurchasePrice: Union[float, None] = None
+    bikeOriginalPurchasePriceNet: Union[float, None] = None
+    bikeUser: Union[str, None] = None
+    contractAttachment: Union[str, None] = None
+    contractCommunicationError: Union[communicationError, None] = None
+    contractConditionBasedReduction: Union[float, None] = None
+    contractDeliveryInformation: Union[str, None] = None
+    contractPartsBasedReduction: Union[float, None] = None
+    contractPartsMissing: Union[str, None] = None
+    contractSentToLogistics: Union[bool, None] = None
+    contractStateChangedDate: Union[date, None] = None
+    contractSubmitDate: Union[date, None] = None
+    pickContractReceived: Union[bool, None] = None
+    pickEarliest: Union[date, None] = None
+    pickTimeFrom: Union[str, None] = None
+    pickTimeTill: Union[str, None] = None
+    pickUpOkay: Union[bool, None] = None
+    userCompany: Union[str, None] = None
+    userDeviatingPickup: Union[bool, None] = None
+    userDeviatingPickupAddress: Union[str, None] = None
+    # userEmailId: Union[str, None] = None
+    userFederalState: Union[str, None] = None
+    userFunction: Union[str, None] = None
+    userGender: Union[Gender, None] = None
+    userMobilePhone: Union[str, None] = None
+    bikeType: Union[Bike, None] = None
 
 class FormInDB(Form):
     submittingUser: str
@@ -187,7 +248,8 @@ async def read_data(sql):
     rows = cur.fetchall()
     cols = [str(col[0]) for col in cur.description ]
     conn.close()
-    return json.loads(pd.DataFrame(rows, columns=cols).to_json(orient = 'records'))
+    return [dict(zip(cols, row)) for row in rows ]
+    # return json.loads(pd.DataFrame(rows, columns=cols).to_json(orient = 'records'))
 
 async def write_one(obj, table, returns = '*'):
     try:
@@ -236,6 +298,41 @@ async def insert_many(table: str, id_column: str, values: list):
         cur.close()
         conn.close()
         return False
+    
+async def update_one(id, id_col, obj, table):
+    try:
+        conn = psycopg2.connect(**DB_CON)
+        cur = conn.cursor()
+        obj = {
+                "username": 'hacked',
+                "email": 'hacked@email.com',
+                "role": 'user',
+                "name": 'hacked',
+                "password": 'hacked',
+                "disabled": True
+                }
+        returns = ', '.join([f'"{o}"' for o in obj.keys()])
+        to_update = ',\n'.join([f'''"{k}"=%s''' for k in obj])
+        values = list(obj.values()) + [id]
+        sql = f"""
+        UPDATE {table} SET
+        {to_update}
+        where "{id_col}" = %s
+        returning {returns}
+        """
+        print(sql)
+        cur.execute(sql, values)
+        cols = [str(col[0]) for col in cur.description ]
+        vals = cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
+        return dict(zip(cols, vals))
+    except (psycopg2.Error) as error:
+        print(error)
+        cur.close()
+        conn.close()
+        return False
 
 async def get_user(username: str):
     db = await read_data('select * from users')
@@ -273,19 +370,6 @@ async def get_current_active_user(
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
-'''
-@router.post("/contracts/add/")
-async def add_ucontract(
-    current_user: Annotated[User, Depends(get_current_active_user)],
-    new_contract: Form
-):
-    obj = new_contract.__dict__
-    obj['submittingUser'] = current_user.username
-    insert_query = f"""INSERT INTO public."Form" ("{'", "'.join(obj.keys())}") VALUES ({', '.join([format_value_for_sql(v) for v in obj.values()])})"""
-    print(insert_query)
-    q = await write_one(insert_query)
-    return q
-'''
 
 @router.get("")
 async def read_contracts(
@@ -297,10 +381,10 @@ async def read_contracts(
         db = await read_data(f"""select * from  public."Form" where submittingUser = '{current_user.username}' """)
     return {"data": db}
 
-@router.post("/contracts/add/")
+@router.post("/add")
 async def add_ucontract(
     current_user: Annotated[User, Depends(get_current_active_user)],
-    new_contracts: List[Form]
+    new_contracts: list[Form]
 ):
     obj = [{
         'submittingUser' : current_user.username,
@@ -365,4 +449,18 @@ async def add_ucontract(
     con_created = await insert_many('public."Form"', '*',obj)
     return {
         'data': con_created
+    }
+
+@router.post("/update")
+async def update_contract(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    updates: FormsToUpdate
+):
+    read_sql = """ select distinct "processId" from public."Form" """
+    if current_user.role != 'admin':
+        read_sql +=  f"""where "submittingUser" ='{current_user.username}' """
+    current_users_contracts = await read_data(read_sql)
+    
+    return {
+        'data': current_users_contracts
     }
