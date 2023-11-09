@@ -303,14 +303,6 @@ async def update_one(id, id_col, obj, table):
     try:
         conn = psycopg2.connect(**DB_CON)
         cur = conn.cursor()
-        obj = {
-                "username": 'hacked',
-                "email": 'hacked@email.com',
-                "role": 'user',
-                "name": 'hacked',
-                "password": 'hacked',
-                "disabled": True
-                }
         returns = ', '.join([f'"{o}"' for o in obj.keys()])
         to_update = ',\n'.join([f'''"{k}"=%s''' for k in obj])
         values = list(obj.values()) + [id]
