@@ -80,11 +80,12 @@ async def write_one(obj, table, returns = '*'):
         returning {returns}
         """
         cur.execute(sql, values)
-        new_obj = cur.fetchone()
+        cols = [str(col[0]) for col in cur.description ]
+        vals = cur.fetchone()
         conn.commit()
         cur.close()
         conn.close()
-        return new_obj
+        return dict(zip(cols, vals))
     except (psycopg2.Error) as error:
         cur.close()
         conn.close()
@@ -220,8 +221,7 @@ async def add_user(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="username already exists!",
             )
-    res = await write_one(obj, 'users')
-    user_created = { key: res[i] for i, key in enumerate( ['id'] + list(obj.keys()))}
+    user_created = await write_one(obj, 'users')
     user_created.pop('password')
     return {'success':  'User Created', 'data': user_created} if user_created else {'error':  'Problem with database'}
     
