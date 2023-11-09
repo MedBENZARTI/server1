@@ -466,7 +466,7 @@ async def update_contract(
                 k: updates.__dict__[k] if k not in enums else updates.__dict__[k].value
                 for k in keys_to_update
             }
-            updated_obj = await update_one(id, 'processIds', obj, 'public."Form"')
+            updated_obj = await update_one(id, 'processId', obj, 'public."Form"')
             updated.append(updated_obj)
         except:
             not_updated.append(id)
