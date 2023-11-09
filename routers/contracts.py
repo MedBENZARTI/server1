@@ -180,19 +180,6 @@ class UserInDB(UserInReq):
 class TokenData(BaseModel):
     username: Union[str, None] = None
 
-def format_value_for_sql(value):
-    if value is None:
-        return "NULL"
-    elif isinstance(value, int):
-        return str(value)
-    elif isinstance(value, float):
-        return str(value)
-    elif isinstance(value, bool):
-        return str(int(value))  # Convert bool to 0 or 1
-    else:
-        # If the data type is not recognized, raise an error or handle it accordingly
-        return f"""'{str(value).replace("'", "''")}'"""
-
 async def read_data(sql):
     conn = psycopg2.connect(**DB_CON)
     cur = conn.cursor()
@@ -202,15 +189,24 @@ async def read_data(sql):
     conn.close()
     return json.loads(pd.DataFrame(rows, columns=cols).to_json(orient = 'records'))
 
-async def write_one(sql):
+async def write_one(obj, table, returns = '*'):
     try:
         conn = psycopg2.connect(**DB_CON)
         cur = conn.cursor()
-        cur.execute(sql)
+        keys = ', '.join([f'"{o}"' for o in obj.keys()])
+        tags = ', '.join(['%s' for i in obj.values()])
+        values = list(obj.values())
+        sql = f"""
+        Insert into {table} ({ keys }) values ({ tags })
+        returning {returns}
+        """
+        cur.execute(sql, values)
+        cols = [str(col[0]) for col in cur.description ]
+        vals = cur.fetchone()
         conn.commit()
         cur.close()
         conn.close()
-        return True
+        return dict(zip(cols, vals))
     except (psycopg2.Error) as error:
         cur.close()
         conn.close()
@@ -340,7 +336,8 @@ async def add_ucontract(
         'userMobilePhone' : new_contract.userMobilePhone,
         'bikeType' : new_contract.bikeType.value
     }
-    insert_query = f"""INSERT INTO public."Form" ("{'", "'.join(obj.keys())}") VALUES ({', '.join([format_value_for_sql(v) for v in obj.values()])})"""
-    con_created = await write_one(insert_query)
-    if con_created:
-        return await read_data("""  """)
+    
+    con_created = await write_one(obj, 'public."Form"')
+    return {
+        'data': con_created
+    }
