@@ -463,7 +463,7 @@ async def update_contract(
     not_available_ids = [id for id in updates.processIds if id not in current_users_contracts]
     if not not_available_ids:
         pid = ', '.join(not_available_ids)
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"These processIds are not found: {pid}")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"These processIds are not found")
     updated = []
     not_updated = []
     for id in updates.processIds:
