@@ -478,7 +478,9 @@ async def update_contract(
             updated.append(updated_obj)
         except:
             not_updated.append(id)
-    return {
+    res = {
         'updated': updated,
         'not_updated': not_updated
     }
+    print(res)
+    return 1
