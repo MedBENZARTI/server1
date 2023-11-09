@@ -68,15 +68,23 @@ def format_value_for_sql(value):
         # If the data type is not recognized, raise an error or handle it accordingly
         return f"""'{str(value).replace("'", "''")}'"""
     
-async def write_one(sql):
+async def write_one(obj, table, returns = '*'):
     try:
         conn = psycopg2.connect(**DB_CON)
         cur = conn.cursor()
-        cur.execute(sql)
+        keys = ', '.join([f'"{o}"' for o in obj.keys()])
+        tags = ', '.join(['%s' for i in obj.values()])
+        values = list(obj.values())
+        sql = f"""
+        Insert into {table} ({ keys }) values ({ tags })
+        returning {returns}
+        """
+        cur.execute(sql, values)
+        new_obj = cur.fetchone()
         conn.commit()
         cur.close()
         conn.close()
-        return True
+        return new_obj
     except (psycopg2.Error) as error:
         cur.close()
         conn.close()
