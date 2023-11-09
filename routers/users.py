@@ -220,8 +220,9 @@ async def add_user(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="username already exists!",
             )
-    user_created = await write_one(obj, 'users')
-    print(user_created)
+    res = await write_one(obj, 'users')
+    user_created = { key: res[i] for i, key in enumerate(obj.keys())}
+    user_created.pop('password')
     return {'success':  'User Created', 'data': user_created} if user_created else {'error':  'Problem with database'}
     
 
