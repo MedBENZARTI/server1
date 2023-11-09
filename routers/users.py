@@ -221,6 +221,7 @@ async def add_user(
                 detail="username already exists!",
             )
     user_created = await write_one(obj, 'users')
+    user_created.pop('password')
     return {'success':  'User Created', 'data': user_created} if user_created else {'error':  'Problem with database'}
     
 
