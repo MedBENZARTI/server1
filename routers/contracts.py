@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from typing import Annotated, Union, List
+from typing import Annotated, Union, List, Field
 from pydantic import BaseModel, EmailStr
 from enum import Enum
 from passlib.context import CryptContext
@@ -8,7 +8,7 @@ import psycopg2
 from fastapi import Depends, FastAPI, HTTPException, status
 import pandas as pd
 from datetime import datetime, timedelta, date
-from typing import Annotated, Union
+from typing import Annotated, Union, Optional
 from jose import JWTError, jwt
 import json
 
@@ -182,7 +182,7 @@ class FormsToUpdate(BaseModel):
     # optional
     pickDate: Union[date, None] = None
     bikeSize: Union[str, None] = None
-    bikeId: Union[int, None] = None
+    bikeId: Optional[int] = Field(None, gt=99999, lt=1000000)
     contractSettlementPrice: Union[float, None] = None
     contractSettlementDate: Union[date, None] = None
     status: Union[Status, None] = None
@@ -194,7 +194,7 @@ class FormsToUpdate(BaseModel):
     bikeBatteryNumber: Union[str, None] = None
     bikeColor: Union[Color, None] = None
     bikeKind: Union[str, None] = None
-    bikeModelYear: Union[int, None] = None
+    bikeModelYear: Optional[int] = Field(None, gt=2000, lt=3000)
     bikeOriginalPurchasePrice: Union[float, None] = None
     bikeOriginalPurchasePriceNet: Union[float, None] = None
     bikeUser: Union[str, None] = None
