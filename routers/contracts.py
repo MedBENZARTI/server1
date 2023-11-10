@@ -370,7 +370,7 @@ async def read_contracts(
     if current_user.role == 'admin':
         db = await read_data('select * from  public."Form"')
     else:
-        db = await read_data(f"""select * from  public."Form" where submittingUser = '{current_user.username}' """)
+        db = await read_data(f"""select * from  public."Form" where "submittingUser" = '{current_user.username}' """)
     return {"data": db}
 
 @router.post("/add")
