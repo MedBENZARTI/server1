@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-from typing import Annotated, Union, List
-from pydantic import BaseModel, EmailStr, Field 
+from typing import Annotated, Union, List, Field
+from pydantic import BaseModel, EmailStr
 from enum import Enum
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
