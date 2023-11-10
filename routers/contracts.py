@@ -8,7 +8,7 @@ import psycopg2
 from fastapi import Depends, FastAPI, HTTPException, status
 import pandas as pd
 from datetime import datetime, timedelta, date
-from typing import Annotated, Union, Optional
+from typing import Annotated, Union, Optional 
 from jose import JWTError, jwt
 import json
 
