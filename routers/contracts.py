@@ -443,7 +443,7 @@ async def add_ucontract(
         'data': con_created
     }
 
-@router.post("/update")
+@router.put("/update")
 async def update_contract(
     current_user: Annotated[User, Depends(get_current_active_user)],
     updates: FormsToUpdate
