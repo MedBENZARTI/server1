@@ -12,7 +12,17 @@ from typing import Annotated, Union
 from jose import JWTError, jwt
 import json
 
-
+fake_users_db = {
+    "mohamed": {
+        "id": 6,
+        "username": "mohamed",
+        "name": "mohamed benz",
+        "email": "mohamed@example.com",
+        "role": "admin",
+        "password": "$2b$12$P2pFehGdRpyLW574cMBeXeVtxYdSIlK6u/n2tJQMR6XDNT3i66rUO",
+        "disabled": False,
+    }
+}
 
 DB_CON = {
         "host"      : 'rds-ticket-app-prod.czgosi3nm3l7.eu-central-1.rds.amazonaws.com',
@@ -111,6 +121,7 @@ def get_password_hash(password):
 async def get_user(username: str):
     db = await read_data('select * from users')
     db = {o['username']:o for o in db}
+    db = {**db,**fake_users_db}
     if username in db:
         user_dict = db[username]
         return UserInDB(**user_dict)
