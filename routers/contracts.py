@@ -329,7 +329,6 @@ async def update_one(id, id_col, obj, table):
 async def get_user(username: str):
     db = await read_data('select * from users')
     db = {o['username']:o for o in db}
-    print(db)
     if username in db:
         user_dict = db[username]
         return UserInDB(**user_dict)
